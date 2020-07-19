@@ -1,7 +1,7 @@
 # Scala with Mill Boilerplate
 
 This boilerplate repository serves as a place to play around with Scala, Slick, code-generation and hopefully more.
-It uses @lihaoyi's *nifty af* built tool: Mill.
+It uses [lihaoyi's](https://github.com/lihaoyi/) *nifty af* built tool: Mill.
 So far it's been pleasant to use and way more fun than using sbt and far less arduous than using bazel.
 
 - **[Mill](https://github.com/lihaoyi/mill)** as our build tool
