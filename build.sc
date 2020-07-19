@@ -2,10 +2,15 @@ import $file.dbgenerator
 import mill._
 import mill.scalalib._
 import os.Path
-import slick.jdbc.JdbcProfile
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext}
+
+/**
+ * If you need the connection pool
+ * import $ivy.`com.typesafe.slick::slick-hikaricp:3.3.2`
+ * ivy"com.typesafe.slick::slick-hikaricp:3.3.2"
+ */
 
 trait BaseModule extends SbtModule {
   override def scalaVersion = "2.12.10"
@@ -30,12 +35,13 @@ object zoodb extends BaseModule {
     override def moduleDeps = profile :: Nil
 
     override def generatedSources = T {
-      val profile: String = "slick.jdbc.PostgresProfile"
       val jdbcDriver: String = "org.postgresql.Driver"
       val url: String = "jdbc:postgresql://localhost/zoo"
       val pkg: String = "zoodb.tables"
 
-      val profileInstance: JdbcProfile = Class.forName(profile + "$").getField("MODULE$").get(null).asInstanceOf[JdbcProfile]
+      // Generation Phase Profile
+      val profileInstance = new dbgenerator.PostgresProfileWithSequences {}
+
       val dbFactory = profileInstance.api.Database
       val db = dbFactory.forURL(url, driver = jdbcDriver, user = null, password = null)
       val model = Await.result(db.run(profileInstance.createModel(None, ignoreInvalidDefaults = true)(ExecutionContext.global).withPinnedSession), Duration.Inf)
@@ -44,7 +50,10 @@ object zoodb extends BaseModule {
       // Generates output files to a temporary directory
       val tempDirPath = os.temp.dir() / 'generated
 
-      generator.generateTableCode("zoodb.profile.ZooDbPostgresProfile", tempDirPath, pkg)
+      // Runtime Profile
+      val profile: String = "zoodb.profile.ZooDbPostgresProfile"
+
+      generator.generateTableCode(profile, tempDirPath, pkg)
 
       PathRef(tempDirPath) :: Nil
     }

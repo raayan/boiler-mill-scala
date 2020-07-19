@@ -43,6 +43,25 @@ object Application {
          |$insertResult
          |""".stripMargin)
 
+    val sequenceQuery = await {
+      db.run {
+        Tables.AnimalsIdSeq.result
+      }
+    }
+
+    logger.info(
+      s"""
+         |Sequence Query:
+         |$sequenceQuery
+         |""".stripMargin)
+
+    val futileSequenceUpdate = await {
+      db.run {
+        Tables.AnimalsIdSeq.update(Tables.AnimalsIdSeqRow(100))
+      }
+    }
+
+    logger.info(s"Update Result: $futileSequenceUpdate")
   }
 
   private def await[T](f: Awaitable[T]) = Await.result(f, Duration("1 second"))

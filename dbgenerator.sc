@@ -3,8 +3,36 @@ import $ivy.`org.postgresql:postgresql:42.2.5`
 import mill.api.PathRef
 import os.Path
 import slick.codegen.SourceCodeGenerator
+import slick.jdbc.PostgresProfile
+import slick.jdbc.meta.{MColumn, MTable}
 import slick.model.Model
 import slick.sql.SqlProfile.ColumnOption.SqlType
+
+import scala.concurrent.ExecutionContext
+
+trait PostgresProfileWithSequences extends PostgresProfile {
+  val TypeSequence = "SEQUENCE"
+  val TypeTable = "TABLE"
+
+  override def defaultTables(implicit ec: ExecutionContext) = {
+    MTable.getTables(None, None, Some("%"), Some(TypeTable :: TypeSequence :: Nil))
+  }
+
+  override def createModelBuilder(tables: Seq[MTable], ignoreInvalidDefaults: Boolean)(implicit ec: ExecutionContext) = {
+    new ModelBuilder(tables, ignoreInvalidDefaults) {
+      override def readColumns(t: MTable) = {
+        t match {
+          case MTable(name, TypeSequence, _, _, _, _) =>
+            super.readColumns(t).map {
+              MColumn(name, "last_value", java.sql.Types.INTEGER, "serial",
+                None, None, 0, Some(false), None, None, 0, 0, Some(false), None, None, None) +: _
+            }
+          case t => super.readColumns(t)
+        }
+      }
+    }
+  }
+}
 
 class CustomGenerator(model: Model) extends SourceCodeGenerator(model) {
   def generateTableCode(profile: String, sourceFolder: Path, pkg: String, container: String = "Tables"): List[PathRef] = {
